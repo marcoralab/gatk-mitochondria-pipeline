@@ -1,0 +1,76 @@
+# snakejob -j 10 --use-conda --notemp -np
+# snakemake -j 1 --use-conda -np
+# snakemake --forceall --rulegraph | dot -Tpdf > docs/MitochondriaPipeline.pdf
+# snakemake -j 1 --use-conda --conda-create-envs-only
+
+INPUT: 'input/wgs_files.csv'
+outdir: 'output'
+
+AlignAndCall:
+  INPUT: 'input/wgs_files.csv'
+  outdir: 'output'
+  gatk:
+    max_read_length: 151
+    coverage_cap: 100000
+    max_low_het_sites: 3
+    max_reads_per_alignment_start: 75
+    m2_extra_args: ""
+    m2_extra_filtering_args: ""
+    max_alt_allele_count: 4
+    vaf_filter_threshold: 0.01
+    f_score_beta: 1
+    vaf_cutoff: ""
+
+  resources:
+    hg38:
+      ref_fasta: "resources/hg38/Homo_sapiens_assembly38.fasta"
+      ref_dict: "resources/hg38/Homo_sapiens_assembly38.dict"
+      ref_fasta_index: "resources/hg38/Homo_sapiens_assembly38.fasta.fai"
+    hg19:
+      ref_fasta: "resources/hg19/Homo_sapiens_assembly19.fasta"
+      ref_dict: "resources/hg19/Homo_sapiens_assembly19.dict"
+      ref_fasta_index: "resources/hg19/Homo_sapiens_assembly19.fasta.fai"
+    mt:
+      mt_dict: "resources/chrM/Homo_sapiens_assembly38.chrM.dict"
+      mt_fasta: "resources/chrM/Homo_sapiens_assembly38.chrM.fasta"
+      mt_fasta_index: "resources/chrM/Homo_sapiens_assembly38.chrM.fasta.fai"
+      mt_amb: "resources/chrM/Homo_sapiens_assembly38.chrM.fasta.amb"
+      mt_ann: "resources/chrM/Homo_sapiens_assembly38.chrM.fasta.ann"
+      mt_bwt: "resources/chrM/Homo_sapiens_assembly38.chrM.fasta.bwt"
+      mt_pac: "resources/chrM/Homo_sapiens_assembly38.chrM.fasta.pac"
+      mt_sa: "resources/chrM/Homo_sapiens_assembly38.chrM.fasta.sa"
+      non_control_region_interval_list: "resources/chrM/non_control_region.chrM.interval_list"
+      blacklisted_sites: "resources/chrM/blacklist_sites.hg38.chrM.bed"
+      blacklisted_sites_index: "resources/chrM/blacklist_sites.hg38.chrM.bed.idx"
+    mt_shifted:
+      mt_shifted_dict: "resources/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.dict"
+      mt_shifted_fasta: "resources/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta"
+      mt_shifted_fasta_index: "resources/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.fai"
+      mt_shifted_amb: "resources/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.amb"
+      mt_shifted_ann: "resources/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.ann"
+      mt_shifted_bwt: "resources/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.bwt"
+      mt_shifted_pac: "resources/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.pac"
+      mt_shifted_sa: "resources/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.sa"
+      shift_back_chain: "resources/chrM/ShiftBack.chain"
+      control_region_shifted_reference_interval_list: "resources/chrM/control_region_shifted.chrM.interval_list"
+
+PostProcess:
+  INPUT: 'input/wgs_files.csv'
+  outdir: 'output'
+  params:
+    chunk_size: 100
+    overwrite: True
+    minimum_homref_coverage: 100
+    min_het_threshold: 0.10
+    min_hom_threshold: 0.95
+    min_mito_cn: 50
+    max_mito_cn: 500
+    vaf_filter_threshold: 0.01
+
+  resources:
+    ARTIFACT_PRONE_SITES: "resources/gnomad/artifact_prone_sites.bed"
+    variant_context: "resources/gnomad/chrM_pos_ref_alt_context_categories.txt"
+    phylotree: "resources/gnomad/rCRS-centered_phylo_vars_final_update.txt"
+    pon_mt_trna: "resources/gnomad/pon_mt_trna_predictions_08_27_2020.txt"
+    mitotip: "resources/gnomad/mitotip_scores_08_27_2020.txt"
+    mt_dbsnp154: "resources/gnomad/GCF_000001405.38.chrM.vcf"

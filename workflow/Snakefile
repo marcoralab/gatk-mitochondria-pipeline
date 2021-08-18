@@ -1,0 +1,37 @@
+
+# Import Python Modules
+import os
+from itertools import product
+import pandas as pd
+
+# Configfile
+configfile: "config/config.yaml"
+
+# IO
+SAMPLES = pd.read_csv(config["INPUT"], index_col='SampleID')
+OUTDIR = config["outdir"]
+
+rule all:
+    input:
+        expand("{outdir}/samples/{SAMPLE_IDS}/mosdepth/{SAMPLE_IDS}_mtdnacn.txt", outdir = OUTDIR, SAMPLE_IDS = SAMPLES.index.tolist()),
+        expand("{outdir}/samples/{SAMPLE_IDS}/gatk/{SAMPLE_IDS}_chrM_per_base_coverage.tsv", outdir = OUTDIR, SAMPLE_IDS = SAMPLES.index.tolist()),
+        expand("{outdir}/samples/{SAMPLE_IDS}/gatk/{SAMPLE_IDS}_chrM.final.split.vcf.gz", outdir = OUTDIR, SAMPLE_IDS = SAMPLES.index.tolist()),
+        expand("{outdir}/joint/final/sample_vcf.vcf.bgz", outdir = OUTDIR)
+
+# GATK Variant Calling pipeline
+## Adapated from https://github.com/gatk-workflows/gatk4-mitochondria-pipeline
+## Laricchia, K. M. et al. (2021). BioRxiv. doi:10.1101/2021.07.23.453510
+module AlignAndCall:
+    snakefile: "rules/AlignAndCall.smk"
+    config: config["AlignAndCall"]
+
+use rule * from AlignAndCall as *
+
+# Post-Processing and combining of GATK called vcf files
+## Adapted from https://github.com/broadinstitute/gnomad-mitochondria
+## Laricchia, K. M. et al. (2021). BioRxiv. doi:10.1101/2021.07.23.453510
+module PostProcess:
+    snakefile: "rules/PostProcessing.smk"
+    config: config["PostProcess"]
+
+use rule * from PostProcess as *
